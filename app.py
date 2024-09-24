@@ -4,6 +4,10 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from services.groq import send_message_to_groq
 from models import db, User, Message
+from flask_migrate import Migrate
+
+from flask_sqlalchemy import SQLAlchemy
+
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -18,7 +22,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///example.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize SQLAlchemy
+
 db.init_app(app)
+
+migrate = Migrate(app, db)
 
 # Create the database tables
 with app.app_context():
