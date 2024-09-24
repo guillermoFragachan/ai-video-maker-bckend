@@ -26,53 +26,65 @@ with app.app_context():
 
 @app.route('/init', methods=['POST'])
 def init_user():
-    data = request.get_json()
-    username = data.get('username')
-    email = data.get('email')
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
 
-    if not username or not email:
-        return jsonify({'error': 'Username and email are required'}), 400
+        if not username or not email:
+            return jsonify({'error': 'Username and email are required'}), 400
 
-    # Check if the user already exists
-    existing_user = User.query.filter_by(username=username).first()
-    if existing_user:
-        return jsonify({'error': 'User already exists'}), 400
+        # Check if the user already exists
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            return jsonify({'error': 'User already exists'}), 400
 
-    # Create a new user
-    new_user = User(username=username, email=email)
-    db.session.add(new_user)
-    db.session.commit()
+        # Create a new user
+        new_user = User(username=username, email=email)
+        db.session.add(new_user)
+        db.session.commit()
 
-    # Initialize the conversation with a welcome message
-    welcome_message = Message(content="Welcome to the chat!", sender='ai', user_id=new_user.id)
-    db.session.add(welcome_message)
-    db.session.commit()
+        # Initialize the conversation with a welcome message
+        welcome_message = Message(content="Welcome to the chat!", sender='ai', user_id=new_user.id)
+        db.session.add(welcome_message)
+        db.session.commit()
 
-    return jsonify({'message': 'User created and conversation initialized', 'user_id': new_user.id}), 201
+        return jsonify({'message': 'User created and conversation initialized', 'user_id': new_user.id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/message', methods=['POST'])
 def send_message():
-    data = request.get_json()
-    user_message = data.get('message')
-    user_id = data.get('user_id')
+    try:
+        data = request.get_json()
+        user_message = data.get('message')
+        user_id = data.get('user_id')
 
-    if not user_message or not user_id:
-        return jsonify({'error': 'No message or user_id provided'}), 400
+        if not user_message or not user_id:
+            return jsonify({'error': 'No message or user_id provided'}), 400
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
 
-    # Save the user message to the database
-    user_message_record = Message(content=user_message, sender='user', user_id=user_id)
-    db.session.add(user_message_record)
-    db.session.commit()
+        # Save the user message to the database
+        user_message_record = Message(content=user_message, sender='user', user_id=user_id)
+        db.session.add(user_message_record)
+        db.session.commit()
 
-    # Call the function to send the message to Groq
-    response_text = send_message_to_groq(user_message)
+        # Call the function to send the message to Groq
+        response_text = send_message_to_groq(user_message)
 
-    # Save the AI response to the database
-    ai_message_record = Message(content=response_text, sender='ai', user_id=user_id)
-    db.session.add(ai_message_record)
-    db.session.commit()
+        # Save the AI response to the database
+        ai_message_record = Message(content=response_text, sender='ai', user_id=user_id)
+        db.session.add(ai_message_record)
+        db.session.commit()
 
-    return jsonify({'response': response_text})
+        return jsonify({'response': response_text}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
