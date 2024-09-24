@@ -15,6 +15,7 @@ client = Groq(api_key=groq_api_key)
 def send_message_to_groq(user_message):
     # Prepare the messages for the Groq API
     messages = [
+         {"role": "system", "content": "You are a helpful assistant. Generate 6 segments for a video script based on the user's query. each of the segments should have prompts for images related to the segments in the next paragraph"},
         {
             "role": "user",
             "content": user_message
@@ -25,8 +26,9 @@ def send_message_to_groq(user_message):
     completion = client.chat.completions.create(
         model="llama3-8b-8192",
         messages=messages,
-        temperature=1,
-        max_tokens=1024,
+        temperature=0.2,
+        seed=10,
+        max_tokens=2048,
         top_p=1,
         stream=True,
         stop=None,
