@@ -1,8 +1,9 @@
 import os
 from groq import Groq
 from dotenv import load_dotenv
-
+import re
 load_dotenv()
+
 
 # Load the Groq API key from environment variables
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -40,3 +41,33 @@ def send_message_to_groq(user_message):
         response_text += chunk.choices[0].delta.content or ""
 
     return response_text
+    # segments = parse_video_script(response_text)
+    # output_dir = "output_images"
+    # os.makedirs(output_dir, exist_ok=True)
+    # generate_and_save_images(segments, output_dir)
+
+
+
+def parse_video_script(response):
+    """Parse the video script response into structured segments."""
+    segments = []
+    segment_pattern = re.compile(r'Segment \d+: (.+?)\nTitle: "(.+?)"\nPrompt: (.+?)\n\n(.+?)(?=\n\n|\$)', re.DOTALL)
+
+    matches = segment_pattern.findall(response)
+
+    for match in matches:
+        segment_number, title, prompt, text = match
+        segments.append({
+            "segment_number": segment_number,
+            "title": title,
+            "prompt": prompt,
+            "text": text.strip()
+        })
+
+    return segments
+
+
+
+
+
+
